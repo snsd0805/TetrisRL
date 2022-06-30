@@ -1,7 +1,4 @@
-from turtle import right
-from torch import true_divide
-from traitlets import Bool
-import copy
+import random
 
 BLOCK_FILL_LOC = [
     [[9, 10, 12, 13], [4, 8, 9, 13]],
@@ -27,18 +24,30 @@ class Board():
     '''
     def __init__(self) -> None:
         self.block = [[0 for _ in range(10)] for _ in range(20)]
+        
+    def place(self, block):
+        '''
+            把現在的方塊擺進去 board，代表確定方塊位置了
+        '''
+        self.block = view(self, block)
     
-    def show(self):
-        self.block[19] = [1 for i in range(10)]
-        for i in range(20):
-            print(str(i).rjust(2), end=' ')
-            for j in range(10):
-                if self.block[i][j]:
-                    print('■', end='')
-                else:
-                    print('□', end='')
-            print()
-
+    def checkScore(self) -> int:
+        '''
+            檢查是否有連線，並回傳該動作得到的分數
+        '''
+        score = 0
+        for row in range(20):
+            flag = True
+            for col in range(10):
+                if self.block[row][col] == 0:
+                    flag = False
+                    break
+            if flag:
+                score += 1
+                self.block[0] = [0 for i in range(10)]
+                for updateRow in range(row, 0, -1):
+                    self.block[updateRow] = self.block[updateRow-1]
+        return score
 
 class Block():
     def __init__(self, block_id:int, board:Board) -> None:
@@ -48,6 +57,10 @@ class Block():
         self.block = [[0 for i in range(4)] for i in range(4)]
         self.board = board
         self.update()
+    
+    def reset(self):
+        block_id = random.randint(0, 6)
+        self.__init__(block_id, self.board)
 
     def update(self):
         id = self.block_id
@@ -81,48 +94,57 @@ class Block():
         else:
             return True
 
-    def fall(self) -> None:
+    def fall(self) -> bool:
         self.y += 1
         if(isCollision(self, self.board)):
             self.y -= 1
+            self.board.place(self)
+            self.reset()
             return False
         else:
             return True
     
     def shiftRight(self) -> bool:
-        rightLimit = 0
-        for col in range(4):
-            for row in range(4):
-                if self.block[row][col] and col>rightLimit:
-                    rightLimit = col
-
-        if (self.x+rightLimit)==9:
+        self.x += 1
+        if(isCollision(self, self.board)):
+            self.x -= 1
             return False
         else:
-            self.x += 1
-            if(isCollision(self, self.board)):
-                self.x -= 1
-                return False
-            else:
-                return True
+            return True
 
     def shiftLeft(self) -> bool:
-        if (self.block_id == 6 and self.x == -1) or (self.block_id != 6 and self.x == 0):
-            # 長條判斷條件是-1
+        self.x -= 1
+        if(isCollision(self, self.board)):
+            self.x += 1                     # 修正
             return False
         else:
-            self.x -= 1
-            if(isCollision(self, self.board)):
-                self.x += 1                     # 修正
-                return False
-            else:
-                return True
+            return True
 
 class TetrisGame():
     def __init__(self) -> None:
-        
+        block_id = random.randint(0, 6)
+        self.board = Board()
+        self.block = Block(block_id, self.board)
 
-def view(block:Block, board:Board) -> list:
+        self.score = 0
+    
+    def action(self, mode):
+        if mode == 'd':
+            self.block.fall()
+        elif mode == 'l':
+            self.block.shiftLeft()
+        elif mode == 'r':
+            self.block.shiftRight()
+        elif mode == 'f':
+            self.block.rotate()
+        
+        self.score += self.board.checkScore()
+        print("SCORE:", self.score)
+    
+    def view(self):
+        return view(self.board, self.block)
+
+def view(board:Board, block:Block) -> list:
     views = []
     for row in board.block:
         views.append([])
@@ -135,7 +157,8 @@ def view(block:Block, board:Board) -> list:
                 onBoardX = block.x+onBlockX
                 if onBoardX >= 10:
                     break
-                views[onBoardY][onBoardX] = block.block[onBlockY][onBlockX]
+                if block.block[onBlockY][onBlockX] == 1:
+                    views[onBoardY][onBoardX] = 1
     return views
 
 def isCollision(block:Block, board:Board) -> bool:
@@ -149,35 +172,3 @@ def isCollision(block:Block, board:Board) -> bool:
                 if board.block[onBoardY][onBoardX]==1:
                     return True
     return False
-
-board = Board()
-# board.show()
-
-block = Block(0, board)
-# block.show()
-# print()
-
-views = view(block, board)
-
-
-while 1:
-    views = view(block, board)
-    for i in range(20):
-        print(str(i).rjust(2), end=' ')
-        for j in range(10):
-            if views[i][j]:
-                print('■', end='')
-            else:
-                print('□', end='')
-        print()
-    action = input("Action: ")
-    if action == 'd':
-        block.fall()
-    elif action == 'l':
-        block.shiftLeft()
-    elif action == 'r':
-        block.shiftRight()
-    elif action == 'f':
-        block.rotate()
-    else:
-        continue    
