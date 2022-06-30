@@ -30,6 +30,9 @@ class Board():
             把現在的方塊擺進去 board，代表確定方塊位置了
         '''
         self.block = view(self, block)
+
+    def reset(self) -> None:
+        self.block = [[0 for _ in range(10)] for _ in range(20)]
     
     def checkScore(self) -> int:
         '''
@@ -127,6 +130,13 @@ class TetrisGame():
         block_id = random.randint(0, 6)
         self.board = Board()
         self.block = Block(block_id, self.board)
+
+        self.score = 0
+        self.done = False
+    
+    def reset(self) -> None:
+        self.block.reset()
+        self.board.reset()
 
         self.score = 0
         self.done = False
