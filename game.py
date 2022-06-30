@@ -100,6 +100,8 @@ class Block():
             self.y -= 1
             self.board.place(self)
             self.reset()
+            if(isCollision(self, self.board)):
+                raise Exception("GAME OVER")
             return False
         else:
             return True
@@ -127,10 +129,15 @@ class TetrisGame():
         self.block = Block(block_id, self.board)
 
         self.score = 0
+        self.done = False
     
     def action(self, mode):
         if mode == 'd':
-            self.block.fall()
+            try:
+                self.block.fall()
+            except:
+                print("GAME OVER")
+                self.done = True
         elif mode == 'l':
             self.block.shiftLeft()
         elif mode == 'r':
@@ -139,7 +146,6 @@ class TetrisGame():
             self.block.rotate()
         
         self.score += self.board.checkScore()
-        print("SCORE:", self.score)
     
     def view(self):
         return view(self.board, self.block)
