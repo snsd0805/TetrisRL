@@ -144,7 +144,8 @@ class TetrisGame():
     def action(self, mode):
         if mode == 'd':
             try:
-                self.block.fall()
+                fallStatus = self.block.fall()
+                return fallStatus
             except:
                 print("GAME OVER")
                 self.done = True
@@ -156,9 +157,62 @@ class TetrisGame():
             self.block.rotate()
         
         self.score += self.board.checkScore()
+        return True
     
     def view(self):
         return view(self.board, self.block)
+    
+    def getAggregateHeight(self) -> int:
+        height = 0
+        for col in range(10):
+            for row in range(20):
+                if self.board.block[row][col] == 1:
+                    if (20-row) > height:
+                        height = (20-row)
+                    break
+        return height
+    
+    def getHoleNumber(self) -> int:
+        nowHoleNumber = 0
+        def checkLoc(row, col) -> bool:
+            if row < 0 or row > 19:
+                return False
+            if col < 0 or col > 9:
+                return False
+            return True
+        
+        def updateCopyBoard(originBoard, flagBoard, row, col):
+            flagBoard[row][col] = nowHoleNumber
+            if checkLoc(row+1, col):
+                if originBoard[row+1][col] == 0 and flagBoard[row+1][col] == -1:
+                    # print("CALL:", row, col, row+1, col)
+                    updateCopyBoard(originBoard, flagBoard, row+1, col)
+            if checkLoc(row-1, col):
+                if originBoard[row-1][col] == 0 and flagBoard[row-1][col] == -1:
+                    # print("CALL:", row, col, row-1, col)
+                    updateCopyBoard(originBoard, flagBoard, row-1, col)
+            if checkLoc(row, col+1):
+                if originBoard[row][col+1] == 0 and flagBoard[row][col+1] == -1:
+                    # print("CALL:", row, col, row, col+1)
+                    updateCopyBoard(originBoard, flagBoard, row, col+1)
+            if checkLoc(row, col-1):
+                if originBoard[row][col-1] == 0 and flagBoard[row][col-1] == -1:
+                    # print("CALL:", row, col, row, col-1)
+                    updateCopyBoard(originBoard, flagBoard, row, col-1)
+            
+        copyBoard = [[-1 for _ in range(10)] for _ in range(20)]
+        for row in range(20):
+            for col in range(10):
+                if self.board.block[row][col] == 0 and copyBoard[row][col] == -1:
+                    updateCopyBoard(self.board.block, copyBoard, row, col)
+                    nowHoleNumber += 1
+        # for row in range(20):
+        #     for col in range(10):
+        #         print(copyBoard[row][col], end=' ')
+        #     print()
+        # print()
+        return nowHoleNumber-1
+                    
 
 def view(board:Board, block:Block) -> list:
     views = []

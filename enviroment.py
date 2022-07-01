@@ -4,10 +4,15 @@ class TetrisEnviroment():
     def __init__(self) -> None:
         self.game = TetrisGame()
         self.score = 0
+        self.pastHeights = 0
+        self.pastHoles = 0
     
     def reset(self):
         self.game.reset()
         self.score = 0
+        self.pastHeights = 0
+        self.pastHoles = 0
+
         return self.game.view(), 0, self.game.done, \
                 (self.game.block.x, self.game.block.y, self.game.block.block_id) 
     
@@ -39,11 +44,48 @@ class TetrisEnviroment():
             for i in range(3):
                 self.game.action('f')
 
-        self.game.action('d')
+        fallStatus = self.game.action('d')
 
-        deltaScore = self.game.score - self.score
+        
+        # 開始計算 rewards
+        # 1. 消除 line
+        completeLines = self.game.score - self.score
         self.score = self.game.score
 
-        return self.game.view(), deltaScore, self.game.done, \
-            (self.game.block.x, self.game.block.y, self.game.block.block_id) 
+        # 2. block 總高度
+        heights = self.game.getAggregateHeight()
+
+        # 3. hole 數量
+        holes = self.game.getHoleNumber()
+
+        # 根據權重計算 rewards
+        # https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/
+        rewards = -0.5*(heights-self.pastHeights) + 2*completeLines + -0.3*(holes-self.pastHoles)
+        if fallStatus == False:
+            rewards += 1
+
+        self.pastHeights = heights
+        self.pastHoles = holes
+
+        return self.game.view(), rewards, self.game.done, \
+            (self.game.block.x, self.game.block.y, self.game.block.block_id, completeLines)
         # observation, reward, done, info(block location)
+
+
+# env = TetrisEnviroment()
+# pixel, reward, done, info = env.reset()
+# while 1:
+#     for i in range(20):
+#         print(str(i).rjust(2), end=' ')
+#         for j in range(10):
+#             if pixel[i][j]:
+#                 print('■', end='')
+#             else:
+#                 print('□', end='')
+#         print()
+#     action = int(input("Action: "))
+#     pixel, reward, done, info = env.step(action)
+#     print(pixel, reward, done, info)
+#     print("Rewards: ", reward)
+#     if done:
+#         break
